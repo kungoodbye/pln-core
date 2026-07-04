@@ -95,12 +95,12 @@ function getAlchemyResultCandidatesMulti(ingredients, book = 0) {
 
     const itemsDb = typeof db !== 'undefined' ? db : (window.alchemy_db || []);
 
-    // Step 1: filter by type, material, level range
+    // Step 1: filter by material + level range
+    // Use binary alchemy_flag (fields_offset+109): 0x03 = can be alchemy output
     let candidates = itemsDb.filter(item => {
-        const isCompoundingCandidate = (item.req_level > 0) || (item.category === "矿物类");
-        if (!isCompoundingCandidate) return false;
-        if (item.material !== primaryMaterial) return false;
+        if (!item.material || item.material !== primaryMaterial) return false;
         if (item.level < minLevel || item.level > maxLevel) return false;
+        if (item.alchemy_flag !== 0x03) return false;
         return true;
     });
 
@@ -149,7 +149,7 @@ function getRecipeOutcomeBreakdownMulti(ingredients, book = 0) {
     const itemProbabilities = {};
     for (let L = minLevel; L <= maxLevel; L++) {
         const climb = L - (L_min + B);  // alchemy jump (百科 bonus added separately)
-        const prob = getDeltaProb(delta, downgradeRange);
+        const prob = getDeltaProb(climb, downgradeRange);
         if (prob <= 0) continue;
         
         const validCandidates = levelToCandidates[L];

@@ -1,0 +1,530 @@
+[
+  {
+    "id": "10000",
+    "name": "EXP",
+    "type_code": 0,
+    "item_class": "0x01"
+  },
+  {
+    "id": "10001",
+    "name": "问号2(未开)",
+    "type_code": 1,
+    "item_class": "0x01"
+  },
+  {
+    "id": "11031",
+    "name": "铜剑",
+    "type_code": 2,
+    "item_class": "0x02"
+  },
+  {
+    "id": "12199",
+    "name": "溺魂三叉戟",
+    "type_code": 3,
+    "item_class": "0x01"
+  },
+  {
+    "id": "12031",
+    "name": "长矛",
+    "type_code": 3,
+    "item_class": "0x03"
+  },
+  {
+    "id": "10999",
+    "name": "弓增伤回避",
+    "type_code": 4,
+    "item_class": "0x04"
+  },
+  {
+    "id": "14246",
+    "name": "荣耀星辉法杖",
+    "type_code": 5,
+    "item_class": "0x01"
+  },
+  {
+    "id": "14245",
+    "name": "蒸气庞克杖",
+    "type_code": 5,
+    "item_class": "0x02"
+  },
+  {
+    "id": "14031",
+    "name": "魔杖",
+    "type_code": 5,
+    "item_class": "0x05"
+  },
+  {
+    "id": "15083",
+    "name": "星尘猫爪",
+    "type_code": 6,
+    "item_class": "0x01"
+  },
+  {
+    "id": "15031",
+    "name": "铜爪",
+    "type_code": 6,
+    "item_class": "0x06"
+  },
+  {
+    "id": "17084",
+    "name": "海盗船锚",
+    "type_code": 8,
+    "item_class": "0x01"
+  },
+  {
+    "id": "17087",
+    "name": "球棒_斧",
+    "type_code": 8,
+    "item_class": "0x05"
+  },
+  {
+    "id": "17031",
+    "name": "手斧",
+    "type_code": 8,
+    "item_class": "0x08"
+  },
+  {
+    "id": "18001",
+    "name": "书包",
+    "type_code": 9,
+    "item_class": "0x09"
+  },
+  {
+    "id": "19086",
+    "name": "炎咒",
+    "type_code": 10,
+    "item_class": "0x01"
+  },
+  {
+    "id": "19085",
+    "name": "海盗诅咒娃娃",
+    "type_code": 10,
+    "item_class": "0x02"
+  },
+  {
+    "id": "19001",
+    "name": "扇子",
+    "type_code": 10,
+    "item_class": "0x0A"
+  },
+  {
+    "id": "20031",
+    "name": "火绳枪",
+    "type_code": 11,
+    "item_class": "0x0B"
+  },
+  {
+    "id": "21678",
+    "name": "星灵学院制服",
+    "type_code": 12,
+    "item_class": "0x0A"
+  },
+  {
+    "id": "21001",
+    "name": "小男童装",
+    "type_code": 12,
+    "item_class": "0x0C"
+  },
+  {
+    "id": "22001",
+    "name": "羽翼头饰",
+    "type_code": 13,
+    "item_class": "0x0D"
+  },
+  {
+    "id": "23001",
+    "name": "手套",
+    "type_code": 14,
+    "item_class": "0x0E"
+  },
+  {
+    "id": "23375",
+    "name": "风雷之心",
+    "type_code": 14,
+    "item_class": "0x10"
+  },
+  {
+    "id": "24001",
+    "name": "童鞋",
+    "type_code": 15,
+    "item_class": "0x0F"
+  },
+  {
+    "id": "25957",
+    "name": "啸风逐雷",
+    "type_code": 15,
+    "item_class": "0x10"
+  },
+  {
+    "id": "25001",
+    "name": "幸运戒指",
+    "type_code": 16,
+    "item_class": "0x10"
+  },
+  {
+    "id": "34084",
+    "name": "月老的红丝线",
+    "type_code": 16,
+    "item_class": "0x19"
+  },
+  {
+    "id": "27000",
+    "name": "无敌香蕉船",
+    "type_code": 20,
+    "item_class": "0x14"
+  },
+  {
+    "id": "30001",
+    "name": "克兰村试炼卷轴",
+    "type_code": 21,
+    "item_class": "0x15"
+  },
+  {
+    "id": "30906",
+    "name": "星辰沙漏",
+    "type_code": 21,
+    "item_class": "0x19"
+  },
+  {
+    "id": "34975",
+    "name": "星耀神纹",
+    "type_code": 21,
+    "item_class": "0x25"
+  },
+  {
+    "id": "32001",
+    "name": "白米饭",
+    "type_code": 23,
+    "item_class": "0x17"
+  },
+  {
+    "id": "25043",
+    "name": "凤凰的羽毛",
+    "type_code": 24,
+    "item_class": "0x18"
+  },
+  {
+    "id": "34971",
+    "name": "小菲的珍藏贴纸Ⅰ",
+    "type_code": 25,
+    "item_class": "0x10"
+  },
+  {
+    "id": "30968",
+    "name": "派对重置券",
+    "type_code": 25,
+    "item_class": "0x15"
+  },
+  {
+    "id": "32309",
+    "name": "原组月饼(测)",
+    "type_code": 25,
+    "item_class": "0x19"
+  },
+  {
+    "id": "36001",
+    "name": "睡袋(未)",
+    "type_code": 27,
+    "item_class": "0x1B"
+  },
+  {
+    "id": "30142",
+    "name": "木桥",
+    "type_code": 28,
+    "item_class": "0x1C"
+  },
+  {
+    "id": "38001",
+    "name": "(预备用)",
+    "type_code": 29,
+    "item_class": "0x1D"
+  },
+  {
+    "id": "39023",
+    "name": "冰箱",
+    "type_code": 29,
+    "item_class": "0x1E"
+  },
+  {
+    "id": "37202",
+    "name": "风车",
+    "type_code": 30,
+    "item_class": "0x1E"
+  },
+  {
+    "id": "40001",
+    "name": "玫瑰花",
+    "type_code": 31,
+    "item_class": "0x1F"
+  },
+  {
+    "id": "40044",
+    "name": "水纹丝",
+    "type_code": 31,
+    "item_class": "0x22"
+  },
+  {
+    "id": "41001",
+    "name": "冬虫夏草(预备用)",
+    "type_code": 32,
+    "item_class": "0x20"
+  },
+  {
+    "id": "42001",
+    "name": "金矿",
+    "type_code": 33,
+    "item_class": "0x21"
+  },
+  {
+    "id": "43014",
+    "name": "星耀之尘‧地",
+    "type_code": 34,
+    "item_class": "0x21"
+  },
+  {
+    "id": "43001",
+    "name": "普通石块",
+    "type_code": 34,
+    "item_class": "0x22"
+  },
+  {
+    "id": "44001",
+    "name": "黏土",
+    "type_code": 35,
+    "item_class": "0x23"
+  },
+  {
+    "id": "45001",
+    "name": "普通木材",
+    "type_code": 36,
+    "item_class": "0x24"
+  },
+  {
+    "id": "46186",
+    "name": "炎蛛丝",
+    "type_code": 37,
+    "item_class": "0x22"
+  },
+  {
+    "id": "46001",
+    "name": "羽毛",
+    "type_code": 37,
+    "item_class": "0x25"
+  },
+  {
+    "id": "47001",
+    "name": "原油",
+    "type_code": 38,
+    "item_class": "0x26"
+  },
+  {
+    "id": "48001",
+    "name": "热气球",
+    "type_code": 39,
+    "item_class": "0x27"
+  },
+  {
+    "id": "30340",
+    "name": "神奇的南瓜",
+    "type_code": 41,
+    "item_class": "0x19"
+  },
+  {
+    "id": "60001",
+    "name": "海水",
+    "type_code": 51,
+    "item_class": "0x33"
+  },
+  {
+    "id": "61000",
+    "name": "半透明魔晶石",
+    "type_code": 52,
+    "item_class": "0x34"
+  },
+  {
+    "id": "49001",
+    "name": "刺拒",
+    "type_code": 53,
+    "item_class": "0x35"
+  },
+  {
+    "id": "62000",
+    "name": "8%暴击钻",
+    "type_code": 54,
+    "item_class": "0x36"
+  },
+  {
+    "id": "63000",
+    "name": "飘流币",
+    "type_code": 55,
+    "item_class": "0x37"
+  },
+  {
+    "id": "63001",
+    "name": "绿钻",
+    "type_code": 56,
+    "item_class": "0x38"
+  },
+  {
+    "id": "63002",
+    "name": "紫钻",
+    "type_code": 57,
+    "item_class": "0x39"
+  },
+  {
+    "id": "48047",
+    "name": "大型巴士",
+    "type_code": 58,
+    "item_class": "0x3A"
+  },
+  {
+    "id": "63003",
+    "name": "绑定绿钻",
+    "type_code": 59,
+    "item_class": "0x3B"
+  },
+  {
+    "id": "31001",
+    "name": "心意花笺",
+    "type_code": 60,
+    "item_class": "0x15"
+  },
+  {
+    "id": "35181",
+    "name": "星穹宝箱",
+    "type_code": 60,
+    "item_class": "0x19"
+  },
+  {
+    "id": "35116",
+    "name": "强力补血轻便组",
+    "type_code": 60,
+    "item_class": "0x1A"
+  },
+  {
+    "id": "35148",
+    "name": "制作入门礼盒",
+    "type_code": 60,
+    "item_class": "0x29"
+  },
+  {
+    "id": "63004",
+    "name": "组织硬币",
+    "type_code": 61,
+    "item_class": "0x3D"
+  },
+  {
+    "id": "63005",
+    "name": "组织发展值",
+    "type_code": 62,
+    "item_class": "0x3E"
+  },
+  {
+    "id": "63006",
+    "name": "组织补给",
+    "type_code": 63,
+    "item_class": "0x3F"
+  },
+  {
+    "id": "63007",
+    "name": "柴犬旺旺",
+    "type_code": 64,
+    "item_class": "0x40"
+  },
+  {
+    "id": "63017",
+    "name": "星力",
+    "type_code": 65,
+    "item_class": "0x41"
+  },
+  {
+    "id": "63018",
+    "name": "罐头币",
+    "type_code": 66,
+    "item_class": "0x42"
+  },
+  {
+    "id": "63019",
+    "name": "营养罐头1",
+    "type_code": 67,
+    "item_class": "0x43"
+  },
+  {
+    "id": "63029",
+    "name": "红利",
+    "type_code": 68,
+    "item_class": "0x44"
+  },
+  {
+    "id": "63030",
+    "name": "组织宝箱碎片",
+    "type_code": 69,
+    "item_class": "0x44"
+  },
+  {
+    "id": "63031",
+    "name": "称号",
+    "type_code": 70,
+    "item_class": "0x44"
+  },
+  {
+    "id": "63032",
+    "name": "每日活跃",
+    "type_code": 71,
+    "item_class": "0x44"
+  },
+  {
+    "id": "63035",
+    "name": "稳扎稳打骰",
+    "type_code": 72,
+    "item_class": "0x48"
+  },
+  {
+    "id": "63034",
+    "name": "许愿流星",
+    "type_code": 73,
+    "item_class": "0x49"
+  },
+  {
+    "id": "63045",
+    "name": "闪耀经验",
+    "type_code": 74,
+    "item_class": "0x4A"
+  },
+  {
+    "id": "63046",
+    "name": "制作声望",
+    "type_code": 75,
+    "item_class": "0x4B"
+  },
+  {
+    "id": "64000",
+    "name": "莫伊拉的守护▲",
+    "type_code": 76,
+    "item_class": "0x4C"
+  },
+  {
+    "id": "63048",
+    "name": "地之魔能",
+    "type_code": 77,
+    "item_class": "0x4D"
+  },
+  {
+    "id": "34978",
+    "name": "女神之羽",
+    "type_code": 78,
+    "item_class": "0x4E"
+  },
+  {
+    "id": "34979",
+    "name": "地之增幅水晶",
+    "type_code": 79,
+    "item_class": "0x4F"
+  },
+  {
+    "id": "63056",
+    "name": "探险地图(初)",
+    "type_code": 80,
+    "item_class": "0x4F"
+  }
+]

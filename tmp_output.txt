@@ -1,0 +1,12 @@
+半铀矿
+  id=37246 item_class=0x1C type_code(raw)=道具
+  type=道具 category=制作零件 material=石头 level=5
+
+加工原木材
+  id=45012 item_class=0x24 type_code(raw)=木材
+  type=木材 category=木材 material=木材 level=18
+
+水果圣代
+  id=32165 item_class=0x17 type_code(raw)=料理
+  type=料理 category=料理 material=未知属性(101) level=10
+
