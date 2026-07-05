@@ -614,37 +614,34 @@ function getDeltaProb(climb, downgradeRange = 7) {
     return 0; // climb > 5: not possible (even with encyclopedia, climb max is 5)
 }
 
-// Map output level to candidates with fallback handling
+// Map output level to candidates (no fallback — empty levels stay empty)
 function buildLevelToCandidatesMapping(candidates, minLevel, maxLevel) {
     var levelToCandidates = {};
     for (var L = maxLevel; L >= minLevel; L--) {
         var atLevel = candidates.filter(item => item.level === L);
         if (atLevel.length > 0) {
             levelToCandidates[L] = atLevel;
-        } else {
-            var fallbackLevel = -1;
-            for (var L_prev = L - 1; L_prev >= minLevel; L_prev--) {
-                var atLevelPrev = candidates.filter(item => item.level === L_prev);
-                if (atLevelPrev.length > 0) {
-                    fallbackLevel = L_prev;
-                    break;
-                }
-            }
-            if (fallbackLevel === -1) {
-                for (var L_next = L + 1; L_next <= maxLevel; L_next++) {
-                    var atLevelNext = candidates.filter(item => item.level === L_next);
-                    if (atLevelNext.length > 0) {
-                        fallbackLevel = L_next;
-                        break;
-                    }
-                }
-            }
-            if (fallbackLevel !== -1) {
-                levelToCandidates[L] = candidates.filter(item => item.level === fallbackLevel);
-            }
         }
+        // Empty levels remain undefined in the map.
+        // Callers already handle this: getRecipeTargetSuccessRate,
+        // getRecipeOutcomeBreakdown, getRecipeOutcomeBreakdownMulti
+        // all skip empty levels via "if (validCandidates && validCandidates.length > 0)".
+        // The probability from empty levels is treated as 退回/暴掉.
     }
     return levelToCandidates;
+}
+
+// Find the lowest-level alchemy_flag=3 item for a given material.
+// Used for "暴掉" fallback display when no valid candidates exist.
+function findLowestAlchemyFlag3Item(material) {
+    var itemsDb = getDB();
+    if (!itemsDb) return null;
+    var matches = itemsDb.filter(function(item) {
+        return item.material === material && (item.alchemy_flag === 3 || item.alchemy_flag === "3");
+    });
+    if (matches.length === 0) return null;
+    matches.sort(function(a, b) { return a.level - b.level; });
+    return matches[0];
 }
 
 function getRecipeOutcomeBreakdown(recipe, targetItem = null) {
@@ -661,37 +658,60 @@ function getRecipeOutcomeBreakdown(recipe, targetItem = null) {
     var B = book;
     
     var candidates = getAlchemyResultCandidates(primaryItem, secondaryItem, B, target);
-    if (candidates.length === 0) return "";
     
     var downgradeRange = L_min >= 8 ? 7 : 3;
-    var minLevel = Math.max(1, L_min + B - downgradeRange);  // output range includes百科 shift
+    var minLevel = Math.max(1, L_min + B - downgradeRange);
     var maxLevel = L_min + B + 4;
     
     var levelToCandidates = buildLevelToCandidatesMapping(candidates, minLevel, maxLevel);
     
     var itemProbabilities = {};
+    var coveredProb = 0;
     for (var L = minLevel; L <= maxLevel; L++) {
-        var climb = L - (L_min + B);  // alchemy jump (百科 bonus added separately)
+        var climb = L - (L_min + B);
         var prob = getDeltaProb(climb, downgradeRange);
         if (prob <= 0) continue;
         
         var validCandidates = levelToCandidates[L];
         if (validCandidates && validCandidates.length > 0) {
             var splitProb = prob / validCandidates.length;
-            validCandidates.forEach(item => {
+            coveredProb += prob;
+            validCandidates.forEach(function(item) {
                 itemProbabilities[item.name] = (itemProbabilities[item.name] || 0) + splitProb;
             });
         }
     }
     
-    var sortedItems = Object.entries(itemProbabilities)
-        .map(([name, prob]) => ({ name, rate: Math.round(prob * 100) }))
-        .filter(item => item.rate > 0)
-        .sort((a, b) => b.rate - a.rate);
-        
-    if (sortedItems.length === 0) return "";
+    var leftoverProb = Math.max(0, 1 - coveredProb);
+    var parts = [];
     
-    return "预测产物: " + sortedItems.map(x => `${x.name} (${x.rate}%)`).join(", ");
+    // Regular candidates
+    var sortedItems = Object.entries(itemProbabilities)
+        .map(function(e) { return { name: e[0], rate: Math.round(e[1] * 100) }; })
+        .filter(function(x) { return x.rate > 0; })
+        .sort(function(a, b) { return b.rate - a.rate; });
+        
+    if (sortedItems.length > 0) {
+        parts.push("预测产物: " + sortedItems.map(function(x) { return x.name + " (" + x.rate + "%)"; }).join(", "));
+    }
+    
+    // Fallback (退回/暴掉) for leftover probability
+    if (leftoverProb > 0.005) {
+        var leftoverRate = Math.round(leftoverProb * 100);
+        if (B > 0) {
+            // Encyclopedia protection: return primary material
+            parts.push("退回 " + primaryItem.name + " (" + leftoverRate + "%)");
+        } else {
+            // No encyclopedia: destroy → lowest flag=3 item of same material
+            var fallbackItem = findLowestAlchemyFlag3Item(primaryItem.material);
+            if (fallbackItem) {
+                parts.push("暴掉 → " + fallbackItem.name + " (" + leftoverRate + "%)");
+            }
+        }
+    }
+    
+    if (parts.length === 0) return "";
+    return parts.join("; ");
 }
 
 
@@ -790,12 +810,11 @@ function getRecipeOutcomeBreakdownMulti(ingredients, book = 0) {
     if (!ingredients || ingredients.length < 2) return [];
     
     var primaryItem = ingredients[0];
-    var levels = ingredients.map(item => item.level);
-    var L_min = Math.min(...levels);
+    var levels = ingredients.map(function(item) { return item.level; });
+    var L_min = Math.min.apply(null, levels);
     var B = book;
     
     var candidates = getAlchemyResultCandidatesMulti(ingredients, B);
-    if (candidates.length === 0) return [];
 
     var range = getAdvancedAlchemyLevelRange(primaryItem.level, L_min, B);
     var minLevel = range.min;
@@ -805,6 +824,7 @@ function getRecipeOutcomeBreakdownMulti(ingredients, book = 0) {
     var levelToCandidates = buildLevelToCandidatesMapping(candidates, minLevel, maxLevel);
 
     var itemProbabilities = {};
+    var coveredProb = 0;
     for (var L = minLevel; L <= maxLevel; L++) {
         var climb = L - (L_min + B);
         var prob = getDeltaProb(climb, downgradeRange);
@@ -813,17 +833,19 @@ function getRecipeOutcomeBreakdownMulti(ingredients, book = 0) {
         var validCandidates = levelToCandidates[L];
         if (validCandidates && validCandidates.length > 0) {
             var splitProb = prob / validCandidates.length;
-            validCandidates.forEach(item => {
+            coveredProb += prob;
+            validCandidates.forEach(function(item) {
                 itemProbabilities[item.name] = (itemProbabilities[item.name] || 0) + splitProb;
             });
         }
     }
     
-    return Object.entries(itemProbabilities)
-        .map(([name, prob]) => {
-            var candidateItem = candidates.find(item => item.name === name);
+    var results = Object.entries(itemProbabilities)
+        .map(function(e) {
+            var name = e[0], prob = e[1];
+            var candidateItem = candidates.find(function(item) { return item.name === name; });
             return {
-                name,
+                name: name,
                 rate: Math.round(prob * 100),
                 level: candidateItem ? candidateItem.level : 0,
                 material: candidateItem ? candidateItem.material : "",
@@ -833,8 +855,48 @@ function getRecipeOutcomeBreakdownMulti(ingredients, book = 0) {
                 item: candidateItem
             };
         })
-        .filter(item => item.rate > 0)
-        .sort((a, b) => b.rate - a.rate || a.level - b.level || a.name.localeCompare(b.name, "zh-Hans-CN"));
+        .filter(function(item) { return item.rate > 0; });
+    
+    // Fallback (退回/暴掉) for leftover probability
+    var leftoverProb = Math.max(0, 1 - coveredProb);
+    if (leftoverProb > 0.005) {
+        var leftoverRate = Math.round(leftoverProb * 100);
+        if (B > 0) {
+            results.push({
+                name: "退回 " + primaryItem.name,
+                rate: leftoverRate,
+                level: primaryItem.level,
+                material: primaryItem.material,
+                category: "退回",
+                stats: "无属性",
+                req_level: 0,
+                item: primaryItem,
+                fallback: "return"
+            });
+        } else {
+            var fallbackItem = findLowestAlchemyFlag3Item(primaryItem.material);
+            if (fallbackItem) {
+                results.push({
+                    name: fallbackItem.name,
+                    rate: leftoverRate,
+                    level: fallbackItem.level,
+                    material: fallbackItem.material,
+                    category: "暴掉",
+                    stats: fallbackItem.stats || "无属性",
+                    req_level: fallbackItem.req_level || 0,
+                    item: fallbackItem,
+                    fallback: "destroy"
+                });
+            }
+        }
+    }
+    
+    return results.sort(function(a, b) {
+        // Regular items first, fallback items last
+        if (!a.fallback && b.fallback) return -1;
+        if (a.fallback && !b.fallback) return 1;
+        return b.rate - a.rate || a.level - b.level;
+    });
 }
 
 
@@ -2025,6 +2087,7 @@ var alchemy_core = {
         'buildOutputTree', 'getSuccessRate', 'getAlternativeRecipes',
         'queryEquipmentItems', 'resolveMaterialAbbreviation',
         'getSingleAttribute', 'getSafeJunkMaterials', 'getSafeJunkDescription',
+        'findLowestAlchemyFlag3Item',
         'simplifyRecipeSlot2', 'getRecipeDesc', 'isStrictlyCraftOnly',
         'getAlchemyBaseBonus', 'getJumpPenalty'
     ];

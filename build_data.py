@@ -40,19 +40,27 @@ def build():
     print(f'      -> alchemy_db.js, alchemy_core.js, alchemy_config.js')
 
     # 3. Copy to alchemy_simulator/ (for 模拟炼金)
-    print(f'[3/4] Sync to alchemy_simulator/ (模拟器) ...')
+    print(f'[3/5] Sync to alchemy_simulator/ (模拟器) ...')
     sim_dir = os.path.join(ROOT_DIR, 'alchemy_simulator')
     shutil.copy2(os.path.join(BASE_DIR, 'alchemy_data.js'), os.path.join(sim_dir, 'alchemy_data.js'))
     shutil.copy2(os.path.join(BASE_DIR, 'alchemy_core.js'), os.path.join(sim_dir, 'alchemy_core.js'))
     shutil.copy2(os.path.join(BASE_DIR, 'alchemy_config.js'), os.path.join(sim_dir, 'alchemy_config.js'))
     print(f'      -> alchemy_data.js, alchemy_core.js, alchemy_config.js')
 
-    # 4. Summary
+    # 4. Copy to 炼金项目归档/web/ (for archived finder)
+    print(f'[4/5] Sync to 炼金项目归档/web/ (归档寻路器) ...')
+    arch_dir = os.path.join(ROOT_DIR, '炼金项目归档', 'web')
+    shutil.copy2(os.path.join(BASE_DIR, 'alchemy_db.js'), os.path.join(arch_dir, 'alchemy_db.js'))
+    shutil.copy2(os.path.join(BASE_DIR, 'alchemy_core.js'), os.path.join(arch_dir, 'alchemy_core.js'))
+    shutil.copy2(os.path.join(BASE_DIR, 'alchemy_config.js'), os.path.join(arch_dir, 'alchemy_config.js'))
+    print(f'      -> alchemy_db.js, alchemy_core.js, alchemy_config.js')
+
+    # 5. Summary
     print()
-    print('[4/4] Build complete!')
+    print('[5/5] Build complete!')
     print()
     print('  Canonical source: pln-core/')
-    print('  Targets synced:   ./ (index.html), ./alchemy_simulator/')
+    print('  Targets synced:   ./ (index.html), ./alchemy_simulator/, ./炼金项目归档/web/')
     print()
     print('  Modify pln-core/*.js or pln-core/alchemy_db.json, then re-run this script.')
 
