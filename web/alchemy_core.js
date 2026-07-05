@@ -3,7 +3,7 @@
 // ==========================================================================
 
 // Filtered list of relevant WLO materials used in equipment compounding
-const ALL_EQUIPMENT_MATERIALS = [
+var ALL_EQUIPMENT_MATERIALS = (window.alchemy_config && window.alchemy_config.ALL_EQUIPMENT_MATERIALS) || [
     "花类纤维", "草类纤维", "叶类纤维", "羽毛", "羽麻", "尼龙", "兽皮", "兽毛", "兽骨", 
     "金", "银", "白银", "铜", "铁", "钢", "赤铁", "锡", "铅", "铝", "钛", "星耀",
     "水晶", "钻石", "宝石", "玉", "石头", "磁石", "魔性物质", "白色黏土", "结晶体", "胶质", "甲壳", "木材"
@@ -11,7 +11,7 @@ const ALL_EQUIPMENT_MATERIALS = [
 
 // Material compatibility table (主属性相容副属性)
 // If slot 1 has material K, and slot 2 has material V, the result keeps material K.
-const COMPATIBILITY = {
+var COMPATIBILITY = (window.alchemy_config && window.alchemy_config.COMPATIBILITY) || {
     "星耀": ["星耀", "花类纤维", "草类纤维", "叶类纤维", "木材", "金", "银", "白银", "铜", "铁", "钢", "赤铁", "锡", "铅", "铝", "钛", "水晶", "钻石", "宝石", "玉", "石头", "磁石", "魔性物质", "结晶体", "兽皮", "羽毛", "甲壳", "兽骨", "尼龙"],
     "宝石": ["宝石", "白银", "玉", "金", "银", "铜", "铁", "钢", "水晶", "钻石", "钛", "木材", "兽骨"],
     "白银": ["白银", "玉", "赤铁", "木材", "兽皮", "铜", "铁", "钢", "锡"],
@@ -35,7 +35,7 @@ const COMPATIBILITY = {
 };
 
 // Costs for books (炼金百科)
-const BOOK_COSTS = {
+var BOOK_COSTS = (window.alchemy_config && window.alchemy_config.BOOK_COSTS) || {
     0: 0,
     1: 10,
     2: 50,
@@ -43,22 +43,22 @@ const BOOK_COSTS = {
     4: 800
 };
 
-const BOOK_SOURCES = {
+var BOOK_SOURCES = (window.alchemy_config && window.alchemy_config.BOOK_SOURCES) || {
     2: ["商城 8绑定钻石", "商城 75紫钻"],
     4: ["商城 125紫钻"]
 };
 
 // Penalties for jumping levels (跳级几率惩罚)
-const JUMP_PENALTIES = {
+var JUMP_PENALTIES = (window.alchemy_config && window.alchemy_config.JUMP_PENALTIES) || {
     0: 0,       // +0 jump (平合, success rate is ~95%)
     1: 1500,    // +1 jump (moderate risk, success rate is ~50%)
     2: 8000,    // +2 jump (high risk, success rate is ~10-15%)
     3: 50000    // +3 jump (extreme risk, success rate is ~2%)
 };
 
-const ADVANCED_ALCHEMY_BASE_BONUS = 4;
+var ADVANCED_ALCHEMY_BASE_BONUS = (window.alchemy_config && window.alchemy_config.ADVANCED_ALCHEMY_BASE_BONUS) || 4;
 
-const CRAFT_NAME_ALIASES = {
+var CRAFT_NAME_ALIASES = (window.alchemy_config && window.alchemy_config.CRAFT_NAME_ALIASES) || {
     "魔法牙隋粉": "魔法牙髓粉",
     "龙鳞魔随": "龙鳞魔髓"
 };

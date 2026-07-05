@@ -36,6 +36,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static files with caching
+	mux.HandleFunc("/web/alchemy_config.js", serveConfig)
 	mux.HandleFunc("/web/alchemy_core.js", serveCore)
 	mux.HandleFunc("/web/alchemy_db.json", serveData)
 
@@ -67,6 +68,12 @@ func loadHashes() {
 
 	hashTime = time.Now()
 	version = hashTime.Format("20060102150405")
+}
+
+func serveConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400, immutable")
+	http.ServeFile(w, r, filepath.Join(webDir, "alchemy_config.js"))
 }
 
 func serveCore(w http.ResponseWriter, r *http.Request) {
