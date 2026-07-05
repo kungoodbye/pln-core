@@ -1615,13 +1615,31 @@ function queryEquipmentItems(filters = {}) {
             if (!showNoStats && hasNoStats && !isProp && item.material !== "星耀" && !hasCraft) return false;
             
             if (query) {
-                const searchable = [
-                    ...getItemSearchAliases(item),
-                    item.id,
-                    item.level,
-                    item.req_level
-                ].map(value => String(value || "").toLowerCase());
-                if (!searchable.some(value => value.includes(query))) return false;
+                // Parse combo format: "21木", "木21", "21 木材"
+                var comboLevel = null, comboMaterial = null, comboQuery = query;
+                var patterns = [
+                    { regex: /^(\d+)\s+(\S+)$/, n:1, m:2 },
+                    { regex: /^(\S+)\s+(\d+)$/, n:2, m:1 },
+                    { regex: /^(\d+)(\S+)$/,    n:1, m:2 },
+                    { regex: /^(\S+)(\d+)$/,    n:2, m:1 }
+                ];
+                for (var pi = 0; pi < patterns.length; pi++) {
+                    var match = comboQuery.match(patterns[pi].regex);
+                    if (match) {
+                        var resolved = resolveMaterialAbbreviation(match[patterns[pi].m]);
+                        if (resolved) { comboLevel = parseInt(match[patterns[pi].n],10); comboMaterial = resolved; comboQuery = ""; }
+                        break;
+                    }
+                }
+                if (comboLevel !== null && item.level !== comboLevel) return false;
+                if (comboMaterial && item.material !== comboMaterial) return false;
+                if (comboQuery) {
+                    var searchable = [...getItemSearchAliases(item), item.id, item.level, item.req_level]
+                        .map(function(v){return String(v||"").toLowerCase();});
+                    var tokens = comboQuery.split(/(\d+)/).filter(Boolean).map(function(t){return t.trim().toLowerCase();}).filter(Boolean);
+                    if (tokens.length===0) tokens.push(comboQuery);
+                    if (!tokens.every(function(t){return searchable.some(function(v){return v.includes(t);});})) return false;
+                }
             }
             if (category && item.category !== category) return false;
             if (primaryMaterial && item.material !== primaryMaterial) return false;
