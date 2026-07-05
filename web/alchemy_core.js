@@ -1676,3 +1676,19 @@ function queryEquipmentItems(filters = {}) {
             return String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN");
         });
 }
+
+// Material abbreviation mapping for search (22 entries)
+var MATERIAL_ABBREVIATIONS = (window.alchemy_config && window.alchemy_config.MATERIAL_ABBREVIATIONS) || {
+    "木":"木材","皮":"兽皮","骨":"兽骨","毛":"兽毛","羽":"羽毛",
+    "壳":"甲壳","赤":"赤铁","魔":"魔性物质","白":"白银","钻":"钻石",
+    "宝":"宝石","水":"水晶","黏":"白色黏土","泥":"普通黏土",
+    "草":"草类纤维","花":"花类纤维","叶":"叶类纤维",
+    "米":"米","麦":"麦","肉":"肉","蛋":"蛋","豆":"豆"
+};
+
+function resolveMaterialAbbreviation(input) {
+    if (!input) return null;
+    if (MATERIAL_ABBREVIATIONS[input]) return MATERIAL_ABBREVIATIONS[input];
+    if (ALL_EQUIPMENT_MATERIALS && ALL_EQUIPMENT_MATERIALS.includes(input)) return input;
+    return null;
+}
