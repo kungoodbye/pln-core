@@ -1,5 +1,6 @@
 *.exe
 *.log
+*.db
 .env
 __pycache__/
 *.pyc

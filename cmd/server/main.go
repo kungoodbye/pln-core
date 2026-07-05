@@ -4,21 +4,23 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kungoodbye/pln-core/internal/handler"
+	"github.com/kungoodbye/pln-core/internal/middleware"
+	"github.com/kungoodbye/pln-core/internal/store"
 )
 
 var (
-	webDir     = ""
-	version    = ""
-	dataHash   = ""
-	coreHash   = ""
-	hashTime   time.Time
+	webDir   = ""
+	version  = ""
+	dataHash = ""
+	coreHash = ""
 )
 
 func main() {
@@ -30,29 +32,50 @@ func main() {
 	if webDir == "" {
 		webDir = filepath.Join("..", "..", "web")
 	}
+	dataDir := os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "."
+	}
 
 	loadHashes()
 
+	// Initialize SQLite
+	if err := store.Init(dataDir); err != nil {
+		log.Fatalf("store init failed: %v", err)
+	}
+	defer store.Close()
+
 	mux := http.NewServeMux()
 
-	// Static files with caching
+	// == Static files (existing, unchanged) ==
 	mux.HandleFunc("/web/alchemy_config.js", serveConfig)
 	mux.HandleFunc("/web/alchemy_core.js", serveCore)
 	mux.HandleFunc("/web/alchemy_db.json", serveData)
 
-	// API
+	// == Public API (existing, unchanged) ==
 	mux.HandleFunc("/api/alchemy/version", handleVersion)
-	mux.HandleFunc("/api/alchemy/search", handleSearch)
+	mux.HandleFunc("/api/alchemy/search", handler.HandleSearch(webDir))
 
-	// CORS for dev
-	handler := corsMiddleware(mux)
+	// == Auth API (new) ==
+	mux.HandleFunc("/api/wx/login", handler.HandleWxLogin)
 
-	log.Printf("pln-core server starting on :%s, web dir: %s", port, webDir)
-	log.Printf("core hash: %s, data hash: %s", coreHash[:8], dataHash[:8])
+	// == User API (new, requires auth) ==
+	mux.HandleFunc("/api/user/favorite", middleware.AuthRequired(handler.HandleUserFavorite))
+	mux.HandleFunc("/api/user/favorites", middleware.AuthRequired(handler.HandleUserFavorites))
+	mux.HandleFunc("/api/user/history", middleware.AuthRequired(handler.HandleUserHistory))
+
+	// Apply CORS (updated to allow POST/DELETE/PUT for new endpoints)
+	corsHandler := corsMiddleware(mux)
+
+	log.Printf("pln-core server starting on :%s", port)
+	log.Printf("  web dir: %s", webDir)
+	log.Printf("  data dir: %s", dataDir)
+	log.Printf("  core hash: %s, data hash: %s", coreHash[:8], dataHash[:8])
+	log.Printf("  auth: wx_configured=%v", os.Getenv("WX_APPID") != "")
 
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      handler,
+		Handler:      corsHandler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
@@ -66,8 +89,7 @@ func loadHashes() {
 	data, _ := os.ReadFile(filepath.Join(webDir, "alchemy_db.json"))
 	dataHash = fmt.Sprintf("%x", md5.Sum(data))
 
-	hashTime = time.Now()
-	version = hashTime.Format("20060102150405")
+	version = time.Now().Format("20060102150405")
 }
 
 func serveConfig(w http.ResponseWriter, r *http.Request) {
@@ -106,64 +128,15 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handleSearch(w http.ResponseWriter, r *http.Request) {
-	q := strings.TrimSpace(r.URL.Query().Get("q"))
-	if q == "" || len(q) < 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	f, err := os.Open(filepath.Join(webDir, "alchemy_db.json"))
-	if err != nil {
-		http.Error(w, "data not found", 500)
-		return
-	}
-	defer f.Close()
-
-	// Simple streaming search in JSON array
-	dec := json.NewDecoder(f)
-	if _, err := dec.Token(); err != nil { // skip opening [
-		http.Error(w, "invalid data", 500)
-		return
-	}
-
-	var results []json.RawMessage
-	q = strings.ToLower(q)
-	for dec.More() {
-		var item json.RawMessage
-		if err := dec.Decode(&item); err != nil {
-			break
-		}
-		s := strings.ToLower(string(item))
-		if strings.Contains(s, q) {
-			results = append(results, item)
-			if len(results) >= 20 {
-				break
-			}
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("["))
-	for i, r := range results {
-		if i > 0 {
-			w.Write([]byte(","))
-		}
-		w.Write(r)
-	}
-	w.Write([]byte("]"))
-}
-
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(200)
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
-
-var _ = io.Discard
