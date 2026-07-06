@@ -377,7 +377,7 @@ function isEquipmentCandidate(item) {
     // Must be marked as alchemy output (flag 1 or 3), have valid type/category.
     // req_level>0 for equipment, or (material && level>0) for道具/材料 with alchemy_flag=3
     return Boolean(item && item.type && item.category
-        && (item.alchemy_flag === 3 || item.alchemy_flag === 1)
+        && ((item.alchemy_flag & 1) === 1)
         && (item.req_level > 0 || (item.material && item.level > 0)));
 }
 
@@ -637,7 +637,7 @@ function findLowestAlchemyFlag3Item(material) {
     var itemsDb = getDB();
     if (!itemsDb) return null;
     var matches = itemsDb.filter(function(item) {
-        return item.material === material && (item.alchemy_flag === 3 || item.alchemy_flag === "3");
+        return item.material === material && ((item.alchemy_flag & 1) === 1);
     });
     if (matches.length === 0) return null;
     matches.sort(function(a, b) { return a.level - b.level; });
@@ -911,7 +911,8 @@ function solveAlchemyPath(targetItem, maxBook, maxJump, enabledSources, returnAl
         maxBook = 0;
     }
     // Items without any verified synthesis/craft path: show source-info tree
-    if (targetItem && targetItem.obtain_method && NO_OBTAIN_PATH_METHODS.has(targetItem.obtain_method)) {
+    // BUT: if alchemy_flag=3, the item can still be alchemy output
+    if (targetItem && targetItem.obtain_method && NO_OBTAIN_PATH_METHODS.has(targetItem.obtain_method) && (targetItem.alchemy_flag & 1) !== 1) {
         var sourceTree = buildNonSynthSourceTree(targetItem);
         if (returnAll) {
             return { tree: sourceTree, recipes: [] };
