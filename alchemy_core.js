@@ -25,6 +25,29 @@
     return null;
     }
 
+    // === 显示装备ID集合 (BookCollect + 器具制作 + 副本掉落) ===
+    var _displayEquipmentIds = null;
+    function setDisplayEquipmentIds(ids) {
+        if (Array.isArray(ids)) {
+            _displayEquipmentIds = new Set(ids);
+        } else if (ids instanceof Set) {
+            _displayEquipmentIds = ids;
+        }
+    }
+    function getDisplayEquipmentIds() {
+        if (_displayEquipmentIds) return _displayEquipmentIds;
+        if (typeof window !== 'undefined' && window._displayEquipmentIds) {
+            _displayEquipmentIds = window._displayEquipmentIds;
+            return _displayEquipmentIds;
+        }
+        return null;
+    }
+    function isDisplayEquipment(item) {
+        if (!item || !item.id) return false;
+        var ids = getDisplayEquipmentIds();
+        return ids ? ids.has(item.id) : false;
+    }
+
     // === 环境适配: 配置 ===
     var alchemy_config = typeof window !== 'undefined' && window.alchemy_config
         ? window.alchemy_config
@@ -318,6 +341,7 @@ function getItemSubMaterials(item) {
 function getItemSearchAliases(item) {
     return [
         item && item.name,
+        item && item.name_sc,
         item && item.query_tool_name,
         item && item.legacy_name,
         item && item.pinyin,
@@ -555,6 +579,41 @@ function buildReferenceTree(targetItem) {
     };
 }
 
+var EMPIRICAL_RECIPE_ESTIMATES = [
+    {
+        primaryName: "魔玉石",
+        secondaryName: "垂直尾翼",
+        targetName: "晚宴礼服",
+        book: 2,
+        rate: 33,
+        confidence: "低",
+        label: "实测校准估算"
+    }
+];
+
+function getEmpiricalRecipeEstimate(recipe, targetItem = null) {
+    if (!recipe || !recipe.node1 || !recipe.node2) return null;
+    var primaryItem = recipe.node1.item || {};
+    var secondaryItem = recipe.node2.item || {};
+    var target = targetItem || recipe.targetItem || (typeof selectedItem !== "undefined" ? selectedItem : null);
+    var book = Number(recipe.book || 0);
+    var name1 = primaryItem.name || recipe.name1 || "";
+    var name2 = secondaryItem.name || recipe.name2 || "";
+    var targetName = target ? target.name : "";
+
+    for (var i = 0; i < EMPIRICAL_RECIPE_ESTIMATES.length; i++) {
+        var estimate = EMPIRICAL_RECIPE_ESTIMATES[i];
+        var directMatch = estimate.primaryName === name1 && estimate.secondaryName === name2;
+        var reverseMatch = estimate.primaryName === name2 && estimate.secondaryName === name1;
+        if ((directMatch || reverseMatch)
+            && estimate.targetName === targetName
+            && estimate.book === book) {
+            return estimate;
+        }
+    }
+    return null;
+}
+
 // Calculate single recipe exact probability of getting targetItem using fallback mapping
 function getRecipeTargetSuccessRate(recipe, targetItem = null) {
     if (!recipe || !recipe.node1 || !recipe.node2) return 0;
@@ -565,6 +624,9 @@ function getRecipeTargetSuccessRate(recipe, targetItem = null) {
     var fallbackTarget = typeof selectedItem !== 'undefined' ? selectedItem : null;
     var target = targetItem || recipe.targetItem || fallbackTarget;
     if (!primaryItem || !secondaryItem || !target) return 0;
+
+    var empiricalEstimate = getEmpiricalRecipeEstimate(recipe, target);
+    if (empiricalEstimate) return empiricalEstimate.rate;
     
     var L_min = Math.min(primaryItem.level, secondaryItem.level);
     var B = book;
@@ -1896,59 +1958,40 @@ function queryEquipmentItems(filters = {}) {
     var showProps = filters.showProps !== undefined ? Boolean(filters.showProps) : false;
     var showCraft = filters.showCraft !== undefined ? Boolean(filters.showCraft) : false;
     var showMall = filters.showMall !== undefined ? Boolean(filters.showMall) : false;
-    
-            // Helper to identify system dummy items, starting quest items, and pet-exclusive gear by ID range
-    var isSystemOrStartingOrExclusive = function(item) {
-        if (!item) return true;
-        // 0. General level 1 starting/quest equipment (white boots, leather shoes, Bastet's necklace, etc.)
-        if (item.level === 1 && item.req_level === 0) return true;
-        var idNum = parseInt(item.id, 10);
-        // 1. Character starting weapons (10001-10020)
-        if (idNum >= 10001 && idNum <= 10020) return true;
-        // 2. Pet starting equipment (10050-10099)
-        if (idNum >= 10050 && idNum <= 10099) return true;
-        // 3. System dummy stat items (10985-10999)
-        if (idNum >= 10985 && idNum <= 10999) return true;
-        // 4. Character starting clothes (21001-21020)
-        if (idNum >= 21001 && idNum <= 21020) return true;
-        // 5. Character starting headgear (22001-22010)
-        if (idNum >= 22001 && idNum <= 22010) return true;
-        // 6. Human pet exclusive armlets (25150-25165)
-        if (idNum >= 25150 && idNum <= 25165) return true;
-        // 7. Defensive Bow Evasion dummy (25926)
-        if (idNum === 25926) return true;
+
+    // Use BookCollect-based display equipment ID set (authoritative)
+    var isEquip = function(item) { return isDisplayEquipment(item); };
+
+    // Craft items that have a recipe tool (e.g. fridge, 器具制作)
+    var isCraftItem = function(item) { return item && item.crafted_from && item.crafted_from.tool; };
+
+    // Mall items: in the MALL_EQUIPMENT_IDS list or special alchemy_flag patterns
+    var MALL_EQUIPMENT_IDS = new Set(alchemy_config.MALL_EQUIPMENT_IDS || []);
+    var isMall = function(item) {
+        if (!item) return false;
+        if (MALL_EQUIPMENT_IDS.has(item.id)) return true;
+        if (item.req_level === 0 && (item.alchemy_flag === 11 || item.alchemy_flag === 15 || item.alchemy_flag === 31)
+            && item.stats && !isCraftItem(item) && EQUIPMENT_TYPES.has(item.type)) return true;
         return false;
     };
 
-    // Helper for system dummy items that should be hidden from all lists
-    var isSystemDummyItem = function(item) {
-        if (!item) return true;
-        var idNum = parseInt(item.id, 10);
-        return (idNum >= 10985 && idNum <= 10999) || idNum === 25926;
-    };
-
-    var MALL_EQUIPMENT_IDS = new Set(alchemy_config.MALL_EQUIPMENT_IDS || []);
-
     return getDB()
         .filter(item => {
-            var isEquip = item && item.type && item.category && ((item.alchemy_flag & 1) === 1) && EQUIPMENT_TYPES.has(item.type) && !isSystemDummyItem(item);
-            var isProp = item && !isEquip && item.material && item.level > 0
+            var equip = isEquip(item);
+            var isProp = item && !equip && item.material && item.level > 0
                 && !EQUIPMENT_TYPES.has(item.type);
-            // Craft items (e.g. fridge, tools) may have no material/req_level but should be searchable
-            var hasCraft = item && item.crafted_from && item.crafted_from.tool;
-
-            // Mall/special equipment: must be in the parsed mall/gacha IDs list or req_level === 0 fallback
-            var isMall = item && (MALL_EQUIPMENT_IDS.has(item.id) || (item.req_level === 0 && (item.alchemy_flag === 11 || item.alchemy_flag === 15 || item.alchemy_flag === 31) && item.stats && !hasCraft && EQUIPMENT_TYPES.has(item.type))) && !isSystemOrStartingOrExclusive(item);
+            var hasCraft = isCraftItem(item);
+            var mall = isMall(item);
 
             var keep = false;
-            if (showEquip && isEquip) keep = true;
+            if (showEquip && equip) keep = true;
             if (showProps && isProp) keep = true;
             if (showCraft && hasCraft) keep = true;
-            if (showMall && isMall) keep = true;
+            if (showMall && mall) keep = true;
             if (!keep) return false;
 
             // When mall filter is off, hide mall-exclusive equipment from normal lists
-            if (!showMall && isMall) return false;
+            if (!showMall && mall) return false;
             
             var stats = String(item.stats || "").trim();
             var hasNoStats = !stats || stats === "无" || stats === "无属性";
@@ -2056,6 +2099,9 @@ function resolveMaterialAbbreviation(input) {
 var alchemy_core = {
   setDB: setDB,
   getDB: getDB,
+  setDisplayEquipmentIds: setDisplayEquipmentIds,
+  getDisplayEquipmentIds: getDisplayEquipmentIds,
+  isDisplayEquipment: isDisplayEquipment,
   getBookSourceText: getBookSourceText,
   formatBookUsage: formatBookUsage,
   getItemMaterialSlots: getItemMaterialSlots,
@@ -2076,6 +2122,7 @@ var alchemy_core = {
   buildItemDataMaterialReferenceTree: buildItemDataMaterialReferenceTree,
   buildReferenceTree: buildReferenceTree,
   buildNonSynthSourceTree: buildNonSynthSourceTree,
+  getEmpiricalRecipeEstimate: getEmpiricalRecipeEstimate,
   getRecipeTargetSuccessRate: getRecipeTargetSuccessRate,
   getDeltaProb: getDeltaProb,
   buildLevelToCandidatesMapping: buildLevelToCandidatesMapping,
@@ -2095,7 +2142,10 @@ var alchemy_core = {
     // === 统一导出 ===
     var _exports = {
         setDB: setDB,
-        getDB: getDB
+        getDB: getDB,
+        setDisplayEquipmentIds: setDisplayEquipmentIds,
+        getDisplayEquipmentIds: getDisplayEquipmentIds,
+        isDisplayEquipment: isDisplayEquipment
     };
 
     // 导出所有公共函数和常量
@@ -2113,6 +2163,7 @@ var alchemy_core = {
         'isTargetInAdvancedAlchemyRange', 'isBetterRecipe', 'isBetterPathNode',
         'parseRecommendedFormula', 'buildItemDataMaterialReferenceTree',
         'buildReferenceTree', 'buildNonSynthSourceTree',
+        'getEmpiricalRecipeEstimate',
         'getRecipeTargetSuccessRate', 'getDeltaProb',
         'buildLevelToCandidatesMapping', 'getRecipeOutcomeBreakdown',
         'getAlternativeNames', 'getAlchemyResultCandidatesMulti',
@@ -2122,7 +2173,8 @@ var alchemy_core = {
         'getSingleAttribute', 'getSafeJunkMaterials', 'getSafeJunkDescription',
         'findLowestAlchemyFlag3Item',
         'simplifyRecipeSlot2', 'getRecipeDesc', 'isStrictlyCraftOnly',
-        'getAlchemyBaseBonus', 'getJumpPenalty'
+        'getAlchemyBaseBonus', 'getJumpPenalty',
+        'setDisplayEquipmentIds', 'getDisplayEquipmentIds', 'isDisplayEquipment'
     ];
 
     for (var i = 0; i < _exportNames.length; i++) {
