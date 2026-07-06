@@ -377,7 +377,7 @@ function isEquipmentCandidate(item) {
     // Must be marked as alchemy output (flag 1 or 3), have valid type/category.
     // req_level>0 for equipment, or (material && level>0) for道具/材料 with alchemy_flag=3
     return Boolean(item && item.type && item.category
-        && ((item.alchemy_flag & 1) === 1)
+        && (item.alchemy_flag === 3 || item.alchemy_flag === 1)
         && (item.req_level > 0 || (item.material && item.level > 0)));
 }
 
@@ -637,7 +637,7 @@ function findLowestAlchemyFlag3Item(material) {
     var itemsDb = getDB();
     if (!itemsDb) return null;
     var matches = itemsDb.filter(function(item) {
-        return item.material === material && ((item.alchemy_flag & 1) === 1);
+        return item.material === material && (item.alchemy_flag === 3 || item.alchemy_flag === "3");
     });
     if (matches.length === 0) return null;
     matches.sort(function(a, b) { return a.level - b.level; });
@@ -912,7 +912,7 @@ function solveAlchemyPath(targetItem, maxBook, maxJump, enabledSources, returnAl
     }
     // Items without any verified synthesis/craft path: show source-info tree
     // BUT: if alchemy_flag=3, the item can still be alchemy output
-    if (targetItem && targetItem.obtain_method && NO_OBTAIN_PATH_METHODS.has(targetItem.obtain_method) && (targetItem.alchemy_flag & 1) !== 1) {
+    if (targetItem && targetItem.obtain_method && NO_OBTAIN_PATH_METHODS.has(targetItem.obtain_method) && targetItem.alchemy_flag !== 3) {
         var sourceTree = buildNonSynthSourceTree(targetItem);
         if (returnAll) {
             return { tree: sourceTree, recipes: [] };
@@ -1897,16 +1897,48 @@ function queryEquipmentItems(filters = {}) {
     var showCraft = filters.showCraft !== undefined ? Boolean(filters.showCraft) : false;
     var showMall = filters.showMall !== undefined ? Boolean(filters.showMall) : false;
     
+            // Helper to identify system dummy items, starting quest items, and pet-exclusive gear by ID range
+    var isSystemOrStartingOrExclusive = function(item) {
+        if (!item) return true;
+        // 0. General level 1 starting/quest equipment (white boots, leather shoes, Bastet's necklace, etc.)
+        if (item.level === 1 && item.req_level === 0) return true;
+        var idNum = parseInt(item.id, 10);
+        // 1. Character starting weapons (10001-10020)
+        if (idNum >= 10001 && idNum <= 10020) return true;
+        // 2. Pet starting equipment (10050-10099)
+        if (idNum >= 10050 && idNum <= 10099) return true;
+        // 3. System dummy stat items (10985-10999)
+        if (idNum >= 10985 && idNum <= 10999) return true;
+        // 4. Character starting clothes (21001-21020)
+        if (idNum >= 21001 && idNum <= 21020) return true;
+        // 5. Character starting headgear (22001-22010)
+        if (idNum >= 22001 && idNum <= 22010) return true;
+        // 6. Human pet exclusive armlets (25150-25165)
+        if (idNum >= 25150 && idNum <= 25165) return true;
+        // 7. Defensive Bow Evasion dummy (25926)
+        if (idNum === 25926) return true;
+        return false;
+    };
+
+    // Helper for system dummy items that should be hidden from all lists
+    var isSystemDummyItem = function(item) {
+        if (!item) return true;
+        var idNum = parseInt(item.id, 10);
+        return (idNum >= 10985 && idNum <= 10999) || idNum === 25926;
+    };
+
+    var MALL_EQUIPMENT_IDS = new Set(alchemy_config.MALL_EQUIPMENT_IDS || []);
+
     return getDB()
         .filter(item => {
-            var isEquip = isEquipmentCandidate(item) && EQUIPMENT_TYPES.has(item.type);
+            var isEquip = item && item.type && item.category && ((item.alchemy_flag & 1) === 1) && EQUIPMENT_TYPES.has(item.type) && !isSystemDummyItem(item);
             var isProp = item && !isEquip && item.material && item.level > 0
                 && !EQUIPMENT_TYPES.has(item.type);
             // Craft items (e.g. fridge, tools) may have no material/req_level but should be searchable
             var hasCraft = item && item.crafted_from && item.crafted_from.tool;
 
-            // Mall/special equipment: req_level=0, has stats, not craftable
-            var isMall = item && item.req_level === 0 && item.stats && !hasCraft && item.type;
+            // Mall/special equipment: must be in the parsed mall/gacha IDs list or req_level === 0 fallback
+            var isMall = item && (MALL_EQUIPMENT_IDS.has(item.id) || (item.req_level === 0 && (item.alchemy_flag === 11 || item.alchemy_flag === 15 || item.alchemy_flag === 31) && item.stats && !hasCraft && EQUIPMENT_TYPES.has(item.type))) && !isSystemOrStartingOrExclusive(item);
 
             var keep = false;
             if (showEquip && isEquip) keep = true;
