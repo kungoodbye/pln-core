@@ -1003,6 +1003,9 @@ function solveAlchemyPath(targetItem, maxBook, maxJump, enabledSources, returnAl
     
     // Helper to get base/obtaining cost of a specific item
     var getBaseCost = (item) => {
+        if (enabledSources && enabledSources.customBases && enabledSources.customBases[item.name]) {
+            return 1;
+        }
         // If source is empty, try source_display and recommended_formula as fallback
         var effectiveSource = item.source || item.source_display || item.recommended_formula || "";
         if (!effectiveSource) {
@@ -1064,7 +1067,7 @@ function solveAlchemyPath(targetItem, maxBook, maxJump, enabledSources, returnAl
             cost: minCost,
             method: method,
             item: rep,
-            source: rep ? rep.source : ""
+            source: rep ? ((enabledSources && enabledSources.customBases && enabledSources.customBases[rep.name]) ? "自定义基础材料" : rep.source) : ""
         };
     });
     
@@ -1454,6 +1457,7 @@ function buildOutputTree(node, representatives, enabledSources) {
     
     var tree = {
         name: displayName,
+        cleanName: node.item ? node.item.name : node.material,
         material: node.material,
         level: node.level,
         cost: node.cost,
@@ -1470,14 +1474,16 @@ function buildOutputTree(node, representatives, enabledSources) {
             var ingName = normalizeCraftItemName(ing.name);
             var ingItem = getDB().find(x => x.name === ingName);
             if (ingItem) {
+                var isCustomBase = enabledSources && enabledSources.customBases && enabledSources.customBases[ingName];
+                var method = isCustomBase ? "base" : (ingItem.crafted_from ? "craft" : "base");
                 var repNode = {
                     item: ingItem,
                     material: ingItem.material,
                     level: ingItem.level,
                     cost: ingItem.level * 10, // dummy
-                    method: ingItem.crafted_from ? "craft" : "base",
-                    source: ingItem.source,
-                    crafted_from: ingItem.crafted_from,
+                    method: method,
+                    source: isCustomBase ? "自定义基础材料" : ingItem.source,
+                    crafted_from: isCustomBase ? null : ingItem.crafted_from,
                     exactName: true
                 };
                 
