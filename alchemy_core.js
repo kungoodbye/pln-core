@@ -165,26 +165,82 @@ function buildNonSynthSourceTree(targetItem) {
 }
 
 // 配方描述生成
-function getRecipeDesc(name1, L1, count1, name2, L2, count2, book, J, isLevelDown, targetItem, isLevelUp) {
-    var isProp = targetItem && !isEquipmentCandidate(targetItem);
-    var alt1 = getAlternativeNames(targetItem ? targetItem.material : null, L1, name1) || '';
-    var alt2 = getAlternativeNames(targetItem ? targetItem.material : null, L2, name2) || '';
-    var displayName1 = name1 + alt1;
-    var displayName2 = name2 + alt2;
-    var countText1 = count1 > 1 ? ' x' + count1 : '';
-    var countText2 = count2 > 1 ? ' x' + count2 : '';
+function getCandidatesCount(material, level) {
+    if (!material || !level) return { count: 0, item: null };
+    var count = 0;
+    var lastItem = null;
+    getDB().forEach(function(item) {
+        if (item.material === material && item.level === level) {
+            count++;
+            lastItem = item;
+        }
+    });
+    return { count: count, item: lastItem };
+}
 
-    if (isProp) {
-        if (isLevelUp) return '主材: ' + name1 + ' [物等' + L1 + ']' + countText1 + ' + 辅料: ' + name2 + ' [物等' + L2 + ']' + countText2 + ' (升等合成)';
-        if (isLevelDown) return '主材: ' + name1 + ' [物等' + L1 + ']' + countText1 + ' + 辅料: ' + name2 + ' [物等' + L2 + ']' + countText2 + ' (降等合成)';
-        return '主材: ' + displayName1 + ' [物等' + L1 + ']' + countText1 + ' + 副材: ' + displayName2 + ' [物等' + L2 + ']' + countText2 + (J > 0 ? ' 且额外跳' + J + '级' : '');
+function getShortIngredientText(name, level, count, defaultMaterial) {
+    if (!name) return "";
+    var mat = "";
+    var isClickable = false;
+    var exactName = name;
+    
+    if (name.indexOf("等属性杂物") !== -1) {
+        var m = name.match(/(\d+)等属性杂物/);
+        mat = (m ? m[1] : level) + "等杂物";
     } else {
-        var bookText = book > 0 ? ' + 使用百科' + book + ' (+' + book + '级)' : ' + 不使用百科';
-        if (isLevelUp) return '主材: ' + name1 + ' [等' + L1 + ']' + countText1 + ' + 辅料: ' + name2 + ' [等' + L2 + ']' + countText2 + ' + 无百科书 (升等合成)';
-        if (isLevelDown) return '主材: ' + name1 + ' [等' + L1 + ']' + countText1 + ' + 辅料: ' + name2 + ' [等' + L2 + ']' + countText2 + ' + 无百科书 (降等合成)';
-        if (J === 0 && book === 0) return '主材: ' + displayName1 + ' [物等' + L1 + ']' + countText1 + ' + 副材: ' + displayName2 + ' [物等' + L2 + ']' + countText2 + ' + 不使用百科 (高级炼金范围命中)';
-        return '主材: ' + displayName1 + ' [物等' + L1 + ']' + countText1 + ' + 副材: ' + displayName2 + ' [物等' + L2 + ']' + countText2 + bookText + (J > 0 ? ' 且额外跳' + J + '级' : ' (无额外跳级)');
+        var item = getDB().find(function(x) { return x.name === name; });
+        if (item) {
+            mat = (item.material || "未知材质");
+            isClickable = true;
+            exactName = item.name;
+        } else {
+            mat = defaultMaterial || name;
+        }
     }
+    
+    var displayText = "";
+    if (name.indexOf("等属性杂物") !== -1) {
+        displayText = mat;
+    } else {
+        displayText = level + mat;
+        if (mat) {
+            var candInfo = getCandidatesCount(mat, level);
+            if (candInfo.count === 1 && candInfo.item) {
+                displayText = level + mat + "(" + candInfo.item.name + ")";
+            }
+        }
+    }
+    
+    var countText = count > 1 ? count + "x" : "";
+    displayText = countText + displayText;
+    
+    if (isClickable) {
+        var queryText = level + mat;
+        return '<span class="recipe-ingredient-link" data-name="' + exactName + '" data-query="' + queryText + '" title="点击查看【' + exactName + '】的配方">' + displayText + '</span>';
+    } else {
+        return displayText;
+    }
+}
+
+function getRecipeDesc(name1, L1, count1, name2, L2, count2, book, J, isLevelDown, targetItem, isLevelUp, name3, L3, count3) {
+    var defaultMat = targetItem ? targetItem.material : "";
+    var txt1 = getShortIngredientText(name1, L1, count1, defaultMat);
+    var txt2 = getShortIngredientText(name2, L2, count2, "");
+    var txt3 = name3 ? getShortIngredientText(name3, L3, count3 || 1, "") : "";
+    
+    var recipeText = txt1 + " + " + txt2;
+    if (txt3) {
+        recipeText += " + " + txt3;
+    }
+    if (book > 0) {
+        recipeText += " + 书" + book;
+    }
+    if (isLevelDown) {
+        recipeText += " (降等)";
+    } else if (isLevelUp) {
+        recipeText += " (升等)";
+    }
+    return recipeText;
 }
 
 // 简化配方副材（判断是否可用杂物替代）
@@ -1401,6 +1457,7 @@ function solveAlchemyPath(targetItem, maxBook, maxJump, enabledSources, returnAl
 function getRepresentatives(enabledSources) {
     var reps = {};
     var sources = enabledSources || { convenience: true, shop: true, mine: true, drop: true, craft: true };
+    var enablePropRec = (enabledSources && typeof enabledSources.propRec !== 'undefined') ? enabledSources.propRec : true;
     
     getDB().forEach(item => {
         if (!item.material || item.level <= 0) return;
@@ -1422,7 +1479,13 @@ function getRepresentatives(enabledSources) {
         if (!currentBest) {
             reps[key] = item;
         } else {
-            var hasSrc = (x) => (x.source && x.source.length > 0) || (x.source_display && x.source_display.length > 0) || (x.recommended_formula && x.recommended_formula.length > 0);
+            var hasSrc = (x) => {
+                var basicSrc = (x.source && x.source.length > 0) || (x.source_display && x.source_display.length > 0);
+                if (enablePropRec) {
+                    return basicSrc;
+                }
+                return basicSrc || (x.recommended_formula && x.recommended_formula.length > 0);
+            };
             var isNonAlchemy = (x) => x.crafted_from || hasSrc(x);
             var itemNonAlc = isNonAlchemy(item);
             var bestNonAlc = isNonAlchemy(currentBest);
@@ -1574,10 +1637,11 @@ function getSuccessRate(book, jump, recipe = null) {
 
 // Merged from app.js (production, incl. level-up/down)
 function getAlternativeRecipes(targetItem, maxBook, maxJump, enabledSources, dp, representatives) {
-    if (targetItem && isStrictlyCraftOnly(targetItem)) {
+    var enablePropRec = (enabledSources && typeof enabledSources.propRec !== 'undefined') ? enabledSources.propRec : true;
+    if (!enablePropRec && targetItem && isStrictlyCraftOnly(targetItem)) {
         return [];
     }
-    if (targetItem && !isEquipmentCandidate(targetItem)) {
+    if (targetItem && (enablePropRec ? !isDisplayEquipment(targetItem) : !isEquipmentCandidate(targetItem))) {
         maxBook = 0;
     }
     var recipeGroups = new Map();
@@ -1661,7 +1725,7 @@ function getAlternativeRecipes(targetItem, maxBook, maxJump, enabledSources, dp,
                                     certaintyRate: certainty.rate,
                                     candidates: certainty.candidates,
                                     cost: cost,
-                                    desc: `主材: ${displayName1} [等${L1}] + 副1: ${displayName2} [等${L2}] + 副2: ${displayName3} [等${L3}] + ${formatBookUsage(B)}${J > 0 ? ' 且额外跳' + J + '级' : ' (无额外跳级)'}`
+                                    desc: getRecipeDesc(name1, L1, 1, name2, L2, 1, B, J, false, targetItem, false, name3, L3, 1)
                                 });
                             }
                         }
@@ -1909,7 +1973,7 @@ function getAlternativeRecipes(targetItem, maxBook, maxJump, enabledSources, dp,
     recipes.sort((a, b) => a.cost - b.cost);
 
     // For prop (non-equipment) targets, generate a simplified NPC shop recommendation
-    var isPropTarget = targetItem && !isEquipmentCandidate(targetItem) && targetItem.material;
+    var isPropTarget = targetItem && (enablePropRec ? !isDisplayEquipment(targetItem) : !isEquipmentCandidate(targetItem)) && targetItem.material;
     if (isPropTarget && recipes.length > 0) {
         // Helper: extract shop location from source_display
         function extractShopLoc(item) {
@@ -1932,20 +1996,39 @@ function getAlternativeRecipes(targetItem, maxBook, maxJump, enabledSources, dp,
             return sd.indexOf("购买") !== -1 && sd.indexOf("8-12便利店") === -1;
         });
         if (shopRecipes.length > 0) {
-            // Reformat all shop recipes with clean NPC description
-            shopRecipes.forEach(function(r) {
-                var primaryItem = getDB().find(function(x) { return x.name === r.name1; });
-                var shopLoc = extractShopLoc(primaryItem);
-                var isUp = r.desc.indexOf("升等合成") !== -1;
-                var tag = isUp ? "升等" : "降等";
-                var junkAdv = Math.max(1, L - 3);
-                var junkInt = Math.max(1, L - 2);
-                var junkRange = junkAdv === junkInt ? junkAdv + "等" : junkAdv + "~" + junkInt + "等";
-                var junkLabel = getSafeJunkDescription(M, 1).replace(/^\d+等/, "");
-                r.desc = shopLoc + "出售 " + r.name1 + " + " + junkRange + junkLabel + " (" + tag + ")";
-                r.isShopRecommendation = true;
-            });
-            return shopRecipes;
+            if (enablePropRec) {
+                // Return formatted shop recipes concatenated with original recipes
+                var formattedShopRecipes = shopRecipes.map(function(r) {
+                    var primaryItem = getDB().find(function(x) { return x.name === r.name1; });
+                    var shopLoc = extractShopLoc(primaryItem);
+                    var isUp = r.desc.indexOf("升等合成") !== -1;
+                    var tag = isUp ? "升等" : "降等";
+                    var junkAdv = Math.max(1, L - 3);
+                    var junkInt = Math.max(1, L - 2);
+                    var junkRange = junkAdv === junkInt ? junkAdv + "等" : junkAdv + "~" + junkInt + "等";
+                    var junkLabel = getSafeJunkDescription(M, 1).replace(/^\d+等/, "");
+                    var cloned = Object.assign({}, r);
+                    cloned.desc = shopLoc + "出售 " + r.name1 + " + " + junkRange + junkLabel + " (" + tag + ")";
+                    cloned.isShopRecommendation = true;
+                    return cloned;
+                });
+                return formattedShopRecipes.concat(recipes);
+            } else {
+                // Reformat all shop recipes in-place and return only shopRecipes (original behavior)
+                shopRecipes.forEach(function(r) {
+                    var primaryItem = getDB().find(function(x) { return x.name === r.name1; });
+                    var shopLoc = extractShopLoc(primaryItem);
+                    var isUp = r.desc.indexOf("升等合成") !== -1;
+                    var tag = isUp ? "升等" : "降等";
+                    var junkAdv = Math.max(1, L - 3);
+                    var junkInt = Math.max(1, L - 2);
+                    var junkRange = junkAdv === junkInt ? junkAdv + "等" : junkAdv + "~" + junkInt + "等";
+                    var junkLabel = getSafeJunkDescription(M, 1).replace(/^\d+等/, "");
+                    r.desc = shopLoc + "出售 " + r.name1 + " + " + junkRange + junkLabel + " (" + tag + ")";
+                    r.isShopRecommendation = true;
+                });
+                return shopRecipes;
+            }
         }
     }
 
